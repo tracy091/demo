@@ -1,5 +1,6 @@
 package com.example.demo.config;
 
+import com.example.demo.filter.CustomFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -31,10 +33,7 @@ public class SecurityConfig {
     @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
     private String jwkSetUri;
 
-    private final CognitoSubClaimAdapter cognitoSubClaimAdapter;
-
-    public SecurityConfig(CognitoSubClaimAdapter cognitoSubClaimAdapter) {
-        this.cognitoSubClaimAdapter = cognitoSubClaimAdapter;
+    public SecurityConfig() {
     }
 
     @Bean
@@ -56,17 +55,13 @@ public class SecurityConfig {
                                 .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth.jwt().decoder(jwtDecoder()));
-                //.exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
-                //.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
-        //http.addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(new CustomFilter(), BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 
     @Bean
     public JwtDecoder jwtDecoder() {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
-        decoder.setClaimSetConverter(cognitoSubClaimAdapter);
 
         return decoder;
     }
